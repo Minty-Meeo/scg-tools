@@ -305,13 +305,13 @@ class Header(Chunk):
                     subheader.chunk = CELS(self.chkfmap); subheader.chunk.parse(io)
                 case b'GRUV':  # Length of DATA chunk's array
                     subheader.chunk = GRUV(self.chkfmap); subheader.chunk.parse(Header.make_subreader(io, n, subheader.offs, subheader.size, subheader.tid))
-                case b'GEOM':  # Ultra-Redundant Little-Endian Geometry
+                case b'GEOM':  # Tool Geometry (little-endian)
                     subheader.chunk = GEOM(self.chkfmap); subheader.chunk.parse(Header.make_subreader(io, n, subheader.offs, subheader.size, subheader.tid))
-                case b'GLGM':  # Little-Endian Geometry
+                case b'GLGM':  # PC Geometry (little-endian)
                     subheader.chunk = GLGM(self.chkfmap); subheader.chunk.parse(Header.make_subreader(io, n, subheader.offs, subheader.size, subheader.tid))
-                case b'GCGM':  # GameCube (Big-Endian) Geometry
+                case b'GCGM':  # GameCube Geometry (big-endian)
                     subheader.chunk = GCGM(self.chkfmap); subheader.chunk.parse(Header.make_subreader(io, n, subheader.offs, subheader.size, subheader.tid))
-                case b'CTEX':  # PSXtexfile
+                case b'CTEX':  # PC Textures(?) (PSXtexfile)
                     subheader.chunk = CTEX(self.chkfmap); subheader.chunk.parse(Header.make_subreader(io, n, subheader.offs, subheader.size, subheader.tid))
                 case b'CATR':
                     subheader.chunk = CATR(self.chkfmap); subheader.chunk.parse(Header.make_subreader(io, n, subheader.offs, subheader.size, subheader.tid))
