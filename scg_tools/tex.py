@@ -5,7 +5,6 @@ from __future__ import annotations
 from struct import unpack, pack
 from typing import BinaryIO
 
-from more_itertools import chunked
 from PIL import Image
 from .misc import read_exact
 
@@ -15,8 +14,8 @@ class PSXTexFileError(Exception):
 
 def bgr555_le_decode(data: bytes) -> list[tuple[int]]:
     colors = list[tuple[int]]()
-    for packed in chunked(data, 2, True):
-        bits = unpack("<H", packed)[0]
+    for i in range(0, len(data), 2):
+        bits = unpack("<H", data[i:i+2])[0]
         colors.append(pack("BBB", ((bits & 31) * 255 // 31), (bits >> 5 & 31) * 255 // 31, (bits >> 10 & 31) * 255 // 31))
         assert bits >> 15 == 0, "Non-zero most-significant bit in BGR555 data. Is it alpha?"
     return colors
@@ -29,7 +28,7 @@ def decode_mode0(data: bytes, palette: bytes, width: int, height: int) -> Image.
     for i in data:
         image.extend(clut[i      & 15])
         image.extend(clut[i >> 4 & 15])
-    return Image.Image.frombytes("RGB", (width, height), image)
+    return Image.frombytes("RGB", (width, height), image)
 #
 
 def decode_mode1(data: bytes, palette: bytes, width: int, height: int) -> Image.Image:
@@ -37,16 +36,16 @@ def decode_mode1(data: bytes, palette: bytes, width: int, height: int) -> Image.
     image = bytearray()
     for i in data:
         image.extend(clut[i])
-    return Image.Image.frombytes("RGB", (width, height), image)
+    return Image.frombytes("RGB", (width, height), image)
 #
 
 def decode_mode2(data: bytes, width: int, height: int) -> Image.Image:
     image = b''.join(bgr555_le_decode(data))
-    return Image.Image.frombytes("RGB", (width, height), image)
+    return Image.frombytes("RGB", (width, height), image)
 #
 
 def decode_mode3(data: bytes, width: int, height: int) -> Image.Image:
-    return Image.Image.frombytes("RGBA", (width, height), data)
+    return Image.frombytes("RGBA", (width, height), data)
 #
 
 def decode_psxtexfile_solo(mode: int, data: bytes, palette: bytes, width: int, height: int) -> Image.Image:
@@ -61,6 +60,13 @@ def decode_psxtexfile_solo(mode: int, data: bytes, palette: bytes, width: int, h
             return decode_mode3(data, width, height)
         case _:
             raise PSXTexFileError("Unknown texture format: {:d}.".format(mode))
+#
+
+def decode_psxtexfile(psxtexfile: list[int, bytes, bytes, int, int]) -> list[Image.Image]:
+    images = list[Image.Image]()
+    for [mode, data, palette, width, height] in psxtexfile:
+        images.append(decode_psxtexfile_solo(mode, data, palette, width, height))
+    return images
 #
 
 
