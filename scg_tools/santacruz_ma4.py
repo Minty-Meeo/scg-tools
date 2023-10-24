@@ -50,7 +50,7 @@ def dump_gcgm_props_wavefront_obj(chkfmap: CHKFMAP, images: list[Image.Image], d
     dump_props_wavefront_obj(gcgm_chunk.props, images, directory)
 #
 
-def dump_ctex_psxteximage(chkfmap: CHKFMAP, io: BinaryIO):
+def dump_ctex_psxtexfile(chkfmap: CHKFMAP, io: BinaryIO):
     ctex_chunk: CTEX = chkfmap.at(b'CELS').at(b'CTEX')
     write_psxtexfile(io, ctex_chunk.textures)
 #
@@ -79,9 +79,9 @@ def main() -> int:
     parser.add_argument("--dump-psxtexfile",
         action="store",
         type=str,
-        dest="psxteximage_path",
-        help="Dump the PSXteximage file (*.tex) from the CTEX chunk to a given filepath.",
-        metavar="PSXTEXIMAGE_PATH")
+        dest="psxtexfile_path",
+        help="Dump the PSXtexfile (*.tex) from the CTEX chunk to a given filepath.",
+        metavar="PSXTEXFILE_PATH")
     options = parser.parse_args()
 
     ifile_path = options.input
@@ -99,9 +99,9 @@ def main() -> int:
         # Other prop dump functions seem completely redundant, so we'll just dump the ones used in-game
         dump_gcgm_props_wavefront_obj(chkfmap, images, options.props_path)
         
-    if options.psxteximage_path:
-        with open_helper(options.psxteximage_path, "wb", True, True) as f:
-            dump_ctex_psxteximage(chkfmap, f)
+    if options.psxtexfile_path:
+        with open_helper(options.psxtexfile_path, "wb", True, True) as f:
+            dump_ctex_psxtexfile(chkfmap, f)
 
     return 0
 #

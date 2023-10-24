@@ -10,8 +10,8 @@ from scg_tools.santacruz_tex import parse_psxtexfile, decode_psxtexfile_solo
 from scg_tools.santacruz_txg import GCMaterial, write_gcmaterials
 
 def help(progname: str) -> None:
-    print(f"Converts a PSXteximage file (*.tex) into a GCMaterials file (*.txg) with RGBA32 format textures.\n"
-          f"Usage: {progname} [PSXteximage path] [GCMaterials path]")
+    print(f"Converts a PSXtexfile (*.tex) into a GCMaterials file (*.txg) with RGBA32 format textures.\n"
+          f"Usage: {progname} [PSXtexfile path] [GCMaterials path]")
 #
 
 def main() -> int:

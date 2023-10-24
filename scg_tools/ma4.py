@@ -311,7 +311,7 @@ class Header(Chunk):
                     subheader.chunk = GLGM(self.chkfmap); subheader.chunk.parse(Header.make_subreader(io, n, subheader.offs, subheader.size, subheader.tid))
                 case b'GCGM':  # GameCube (Big-Endian) Geometry
                     subheader.chunk = GCGM(self.chkfmap); subheader.chunk.parse(Header.make_subreader(io, n, subheader.offs, subheader.size, subheader.tid))
-                case b'CTEX':  # PSXteximages
+                case b'CTEX':  # PSXtexfile
                     subheader.chunk = CTEX(self.chkfmap); subheader.chunk.parse(Header.make_subreader(io, n, subheader.offs, subheader.size, subheader.tid))
                 case b'CATR':
                     subheader.chunk = CATR(self.chkfmap); subheader.chunk.parse(Header.make_subreader(io, n, subheader.offs, subheader.size, subheader.tid))
