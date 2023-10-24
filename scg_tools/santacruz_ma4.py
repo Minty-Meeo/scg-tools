@@ -1,7 +1,6 @@
 # Copyright 2023 Bradley G (Minty Meeo)
 # SPDX-License-Identifier: MIT
 
-from os import makedirs
 from pathlib import Path
 from typing import BinaryIO
 
@@ -10,16 +9,13 @@ from .misc import open_helper
 from .tex import decode_psxtexfile_solo, write_psxtexfile
 
 def dump_props_wavefront_obj(chkfmap: CHKFMAP, props: list[Prop], outdir: Path, basename: str):
-    makedirs(outdir, exist_ok=True)
-    assert outdir.is_dir()
-
     chkfmap.dump_texs(outdir, basename + "material_")
     print("prop count: {:d}".format(len(props)))
     print("idx vertexs meshes name")
     for [n, prop] in enumerate(props):
         prop_name = prop.name.decode(codepage)
         print("{:3d} {:7d} {:6d} {:s}".format(n, len(prop.vertexes), len(prop.meshes), prop_name))
-        with open(outdir.joinpath(basename + prop_name + ".obj"), "w") as objf:
+        with open_helper(outdir.joinpath(basename + prop_name + ".obj"), "w", True, True) as objf:
             prop.dump_wavefront_wavefront_obj(objf)
 #
 
@@ -54,16 +50,13 @@ def dump_ctex_psxteximage(chkfmap: CHKFMAP, io: BinaryIO):
 #
 
 def dump_texs(chkfmap: CHKFMAP, outdir: Path, basename: str):
-    makedirs(outdir, exist_ok=True)
-    assert outdir.is_dir()
-    
     ctex_chunk: CTEX = chkfmap.at(b'CELS').at(b'CTEX')
     print("tex count: {:d}".format(len(ctex_chunk.textures)))
     print("idx  mode  unk1  unk2  width height")
     for [n, [mode, unk1, unk2, width, height, data, palette]] in enumerate(ctex_chunk.textures):
         print("{:3d} {:5d} {:5d} {:5d} {:6d} {:6d}".format(n, mode, unk1, unk2, width, height))
         image = decode_psxtexfile_solo(mode, data, palette, width, height)
-        with open(outdir.joinpath(basename + str(n) + ".png"), "wb") as outfile:
+        with open_helper(outdir.joinpath(basename + str(n) + ".png"), "wb", True, True) as outfile:
             image.save(outfile, "png")
 #
 
@@ -87,7 +80,7 @@ def main():
         test = CHKFMAP(); test.parse(f)
         with open_helper("./test.txe", "wb", True, True) as f:
             test.dump_ctex_psxteximage(f)
-        # with open("./test.ma4", "wb") as of:
+        # with open_helper("./test.ma4", "wb", True, True) as of:
         #     test.write(of)
         # test.dump_gcgm_props_obj(Path("./gcgm_props"), "")
         # test.dump_glgm_props_obj(Path("./glgm_props"), "")
