@@ -3,15 +3,16 @@
 
 from __future__ import annotations
 from argparse import ArgumentParser
+from struct import unpack
 from typing import BinaryIO
 
 from PIL import Image
-from scg_tools.ma4 import CHKFMAP, GEOM, GLGM, GCGM, CTEX, Prop, codepage
+from scg_tools.ma4 import CHKFMAP, GEOM, GLGM, GCGM, CTEX, ACTI, Prop, PacketList, codepage, actor_id_translation
 from scg_tools.misc import open_helper
 from scg_tools.tex import decode_psxtexfile, write_psxtexfile
 from scg_tools.txg import decode_gcmaterials, parse_gcmaterials
 
-def dump_props_wavefront_obj(props: list[Prop], images: list[Image.Image], directory: str):
+def dump_props_wavefront_obj(props: list[Prop], images: list[Image.Image], directory: str) -> None:
     print("prop count: {:d}".format(len(props)))
     print("idx vertexs meshes name")
     for [n, prop] in enumerate(props):
@@ -25,34 +26,48 @@ def dump_props_wavefront_obj(props: list[Prop], images: list[Image.Image], direc
             image.save(f)
 #
 
-def dump_geom_props_0_wavefront_obj(chkfmap: CHKFMAP, images: list[Image.Image], directory: str):
+def dump_geom_props_0_wavefront_obj(chkfmap: CHKFMAP, images: list[Image.Image], directory: str) -> None:
     geom_chunk: GEOM = chkfmap.at(b'CELS').at(b'GEOM')
     dump_props_wavefront_obj(geom_chunk.props_0, images, directory)
 #
 
-def dump_geom_props_1_wavefront_obj(chkfmap: CHKFMAP, images: list[Image.Image], directory: str):
+def dump_geom_props_1_wavefront_obj(chkfmap: CHKFMAP, images: list[Image.Image], directory: str) -> None:
     geom_chunk: GEOM = chkfmap.at(b'CELS').at(b'GEOM')
     dump_props_wavefront_obj(geom_chunk.props_1, images, directory)
 #
 
-def dump_geom_props_3_wavefront_obj(chkfmap: CHKFMAP, images: list[Image.Image], directory: str):
+def dump_geom_props_3_wavefront_obj(chkfmap: CHKFMAP, images: list[Image.Image], directory: str) -> None:
     geom_chunk: GEOM = chkfmap.at(b'CELS').at(b'GEOM')
     dump_props_wavefront_obj(geom_chunk.props_3, images, directory)
 #
 
-def dump_glgm_props_wavefront_obj(chkfmap: CHKFMAP, images: list[Image.Image], directory: str):
+def dump_glgm_props_wavefront_obj(chkfmap: CHKFMAP, images: list[Image.Image], directory: str) -> None:
     glgm_chunk: GLGM = chkfmap.at(b'CELS').at(b'GLGM')
     dump_props_wavefront_obj(glgm_chunk.props, images, directory)
 #
 
-def dump_gcgm_props_wavefront_obj(chkfmap: CHKFMAP, images: list[Image.Image], directory: str):
+def dump_gcgm_props_wavefront_obj(chkfmap: CHKFMAP, images: list[Image.Image], directory: str) -> None:
     gcgm_chunk: GCGM = chkfmap.at(b'CELS').at(b'GCGM')
     dump_props_wavefront_obj(gcgm_chunk.props, images, directory)
 #
 
-def dump_ctex_psxtexfile(chkfmap: CHKFMAP, io: BinaryIO):
+def dump_ctex_psxtexfile(chkfmap: CHKFMAP, io: BinaryIO) -> None:
     ctex_chunk: CTEX = chkfmap.at(b'CELS').at(b'CTEX')
     write_psxtexfile(io, ctex_chunk.textures)
+#
+
+def remove_bad_actors(chkfmap: CHKFMAP) -> None:
+    acti_chunk: ACTI = chkfmap.at(b'MAP_').at(b'ACTI')
+
+    def good_actor(packet_list: PacketList) -> bool:
+        id = unpack("<i", packet_list.at(4))[0]
+        if id > 0xEFFF:
+            return True
+        # I elect not to remove actor 9 "key 2", 30 "cop", and 51 "ENV 20" because they can be fixed with file edits and don't afflict any known files.
+        return actor_id_translation(id) not in (0, 1, 2, 3, 4, 5, 6, 10, 11, 12, 18, 69)
+    #
+    
+    acti_chunk.actors = list(filter(good_actor, acti_chunk.actors))
 #
 
 def main() -> int:
@@ -64,6 +79,14 @@ def main() -> int:
         help="Input filepath of the CHKFMAP file (*.ma4). This option is required.",
         metavar="INPUT",
         required=True)
+    parser.add_argument("--old-format-parse",
+        action="store_true",
+        dest="old_format_parse",
+        help="Specify that the CHKFMAP file needs to be parsed with the old vertex attribute format. This is important for Pickles World 2 Levels 1-4.")
+    parser.add_argument("--old-format-write",
+        action="store_true",
+        dest="old_format_write",
+        help="Specify that the CHKFMAP file needs to be written with the old vertex attribute format. This is important for Pickles World 2 Levels 1-4.")
     parser.add_argument("--dump-props-obj",
         action="store",
         type=str,
@@ -82,9 +105,25 @@ def main() -> int:
         dest="psxtexfile_path",
         help="Dump the PSXtexfile (*.tex) from the CTEX chunk to a given filepath.",
         metavar="PSXTEXFILE_PATH")
+    parser.add_argument("--remove-bad-actors",
+        action="store_true",
+        dest="remove_bad_actors",
+        help="Remove actors which cause a game crash. This is important for Pickles World 2 Levels 1-2.")
+    parser.add_argument("-o", "--output",
+        action="store",
+        type=str,
+        dest="output",
+        help="Output filepath to write the CHKFMAP file (*.ma4) back out to.",
+        metavar="OUTPUT")
     options = parser.parse_args()
 
     ifile_path = options.input
+
+    # Beware!  Global state!
+    if options.old_format_parse:
+        Prop.old_format_parse = True
+    if options.old_format_write:
+        Prop.old_format_write = True
 
     with open(ifile_path, "rb") as f:
         chkfmap = CHKFMAP(); chkfmap.parse(f)
@@ -102,6 +141,13 @@ def main() -> int:
     if options.psxtexfile_path:
         with open_helper(options.psxtexfile_path, "wb", True, True) as f:
             dump_ctex_psxtexfile(chkfmap, f)
+
+    if options.remove_bad_actors:
+        remove_bad_actors(chkfmap)
+    
+    if options.output:
+        with open_helper(options.output, "wb", True, True) as f:
+            chkfmap.write(f)
 
     return 0
 #
