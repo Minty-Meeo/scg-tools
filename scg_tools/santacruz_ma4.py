@@ -8,7 +8,7 @@ from typing import BinaryIO
 from PIL import Image
 from scg_tools.ma4 import CHKFMAP, GEOM, GLGM, GCGM, CTEX, Prop, codepage
 from scg_tools.misc import open_helper
-from scg_tools.tex import decode_psxtexfile_solo, decode_psxtexfile, write_psxtexfile
+from scg_tools.tex import decode_psxtexfile, write_psxtexfile
 from scg_tools.txg import decode_gcmaterials, parse_gcmaterials
 
 def dump_props_wavefront_obj(props: list[Prop], images: list[Image.Image], directory: str):
@@ -55,17 +55,6 @@ def dump_ctex_psxteximage(chkfmap: CHKFMAP, io: BinaryIO):
     write_psxtexfile(io, ctex_chunk.textures)
 #
 
-def dump_ctex_decode(chkfmap: CHKFMAP, ofile_path: str, wildcard: str):
-    ctex_chunk: CTEX = chkfmap.at(b'CELS').at(b'CTEX')
-    print("tex count: {:d}".format(len(ctex_chunk.textures)))
-    print("idx  mode  unk1  unk2  width height")
-    for [n, [mode, unk1, unk2, width, height, data, palette]] in enumerate(ctex_chunk.textures):
-        print("{:3d} {:5d} {:5d} {:5d} {:6d} {:6d}".format(n, mode, unk1, unk2, width, height))
-        image = decode_psxtexfile_solo(mode, data, palette, width, height)
-        with open_helper(ofile_path.replace(wildcard, str(n), 1), "wb", True, True) as f:
-            image.save(f, "png")
-#
-
 def main() -> int:
     parser = ArgumentParser()
     parser.add_argument("-i", "--input",
@@ -75,13 +64,6 @@ def main() -> int:
         help="Input filepath of the CHKFMAP file (*.ma4). This option is required.",
         metavar="INPUT",
         required=True)
-    parser.add_argument("-w", "--wildcard",
-        action="store",
-        type=str,
-        dest="wildcard",
-        help="Wildcard character (or sequence) used by the output options. The default is \"*\".",
-        metavar="WILDCARD",
-        default='*')
     parser.add_argument("--dump-props-obj",
         action="store",
         type=str,
@@ -106,8 +88,6 @@ def main() -> int:
 
     with open(ifile_path, "rb") as f:
         chkfmap = CHKFMAP(); chkfmap.parse(f)
-
-    wildcard = options.wildcard
     
     if options.props_path:
         if options.gcmaterials_path:
