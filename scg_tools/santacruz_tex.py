@@ -5,7 +5,7 @@ from __future__ import annotations
 from sys import argv
 from os import makedirs, path
 
-from .tex import parse_psxtexfile, decode_psxtexfile_solo
+from scg_tools.tex import parse_psxtexfile, decode_psxtexfile_solo
 
 def help(progname: str):
     print("This command-line utility is able to extract the PSXtexfile image format (*.tex) made by Santa Cruz games\n"

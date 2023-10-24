@@ -5,9 +5,9 @@ from os import path
 from sys import argv
 
 from PIL import Image
-from .misc import open_helper
-from .santacruz_tex import parse_psxtexfile, decode_psxtexfile_solo
-from .santacruz_txg import GCMaterial, write_gcmaterials
+from scg_tools.misc import open_helper
+from scg_tools.santacruz_tex import parse_psxtexfile, decode_psxtexfile_solo
+from scg_tools.santacruz_txg import GCMaterial, write_gcmaterials
 
 def help(progname: str) -> None:
     print(f"Converts a PSXteximage file (*.tex) into a GCMaterials file (*.txg) with RGBA32 format textures.\n"

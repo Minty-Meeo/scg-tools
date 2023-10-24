@@ -6,8 +6,8 @@ from io import BytesIO
 from struct import unpack, pack
 from typing import BinaryIO, TextIO
 
-from .misc import read_exact, read_c_string, align_up, tristrip_walk
-from .tex import parse_psxtexfile, write_psxtexfile
+from scg_tools.misc import read_exact, read_c_string, align_up, tristrip_walk
+from scg_tools.tex import parse_psxtexfile, write_psxtexfile
 
 codepage = "windows-1250"
 

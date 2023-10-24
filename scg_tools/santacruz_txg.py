@@ -8,8 +8,8 @@ from sys import argv
 
 from more_itertools import chunked
 from PIL import Image
-from .misc import open_helper
-from .txg import GCMaterial, parse_gcmaterials, write_gcmaterials
+from scg_tools.misc import open_helper
+from scg_tools.txg import GCMaterial, parse_gcmaterials, write_gcmaterials
 
 def command_decode(args: list[str]) -> int:
     parser = ArgumentParser(usage = "decode [options]... <index-1> <output-filepath-1> <index-2> <output-filepath-2> ... <index-N> <output-filepath-N>")

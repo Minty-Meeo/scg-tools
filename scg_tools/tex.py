@@ -6,7 +6,7 @@ from struct import unpack, pack
 from typing import BinaryIO
 
 from PIL import Image
-from .misc import read_exact
+from scg_tools.misc import read_exact
 
 class PSXTexFileError(Exception):
     pass
@@ -64,7 +64,7 @@ def decode_psxtexfile_solo(mode: int, data: bytes, palette: bytes, width: int, h
 
 def decode_psxtexfile(psxtexfile: list[int, bytes, bytes, int, int]) -> list[Image.Image]:
     images = list[Image.Image]()
-    for [mode, data, palette, width, height] in psxtexfile:
+    for [mode, unk1, unk2, width, height, data, palette] in psxtexfile:
         images.append(decode_psxtexfile_solo(mode, data, palette, width, height))
     return images
 #

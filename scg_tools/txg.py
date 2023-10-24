@@ -10,7 +10,7 @@ from gclib.texture_utils import decode_image, encode_image
 from gclib.gx_enums import ImageFormat
 from gclib.fs_helpers import read_all_bytes
 from PIL import Image
-from .misc import read_exact, peek_exact, align_up
+from scg_tools.misc import read_exact, peek_exact, align_up
 
 class GCMaterial(object):
     def __init__(self, mode: int, xfad: int, blend: int, pad: int, width: int, height: int, data: bytes):
@@ -54,6 +54,12 @@ def parse_gcmaterials(io: BinaryIO) -> list[GCMaterial]:
         gcmaterials.append(GCMaterial(mode, xfad, blend, pad, width, height, data))
     return gcmaterials
 #
+
+def decode_gcmaterials(gcmaterials: list[GCMaterial]) -> list[Image.Image]:
+    images = list[Image.Image]()
+    for gcmaterial in gcmaterials:
+        images.append(gcmaterial.decode())
+    return images 
 
 def write_gcmaterials(io: BinaryIO, gcmaterials: list[GCMaterial]):
     io.seek(align_up(len(gcmaterials) * 12, 32))
