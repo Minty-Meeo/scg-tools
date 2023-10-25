@@ -17,6 +17,10 @@ class Prop(object):
             self.material_idx = material_idx
             self.primitive_data = primitive_data
         #
+
+        def __eq__(self, other: Prop.Mesh):
+            return self.material_idx == other.material_idx and self.primitive_data == other.primitive_data
+        #
     #
 
     old_format_parse = False
@@ -150,6 +154,10 @@ class Prop(object):
         return filepos_base
     #
 
+    def __eq__(self, other: Prop):
+        return self.vertexes == other.vertexes and self.meshes == other.meshes and self.name == other.name
+    #
+
     def dump_wavefront_obj(self, io: TextIO) -> None:
         if Prop.old_format_parse:
             for [u, v, x, y, z, xn, yn, zn, r, g, b, a] in self.vertexes:
@@ -182,7 +190,10 @@ class PropList(list[Prop]):
         for n in range(count):
             prop_list.append(Prop.parse(endian, io, prop_data_bases[n], prop_name_bases[n]))
         return prop_list
+    #
 
+    def __eq__(self, other: PropList):
+        return self.unkflt == other.unkflt and super().__eq__(other)
     #
 
     def write(self, endian, io: BinaryIO):
@@ -209,6 +220,10 @@ class Packet(object):
         self.unk = unk
         self.data = data
         self.stupid = stupid  # size == 0 instead of 3
+    #
+
+    def __eq__(self, other: Packet):
+        return self.type == other.type and self.unk == other.unk and self.data == other.data and self.stupid == other.stupid
     #
 #
 
@@ -399,6 +414,10 @@ class GRUV(Chunk):  # Size of DATA chunk's array (HEAD chunk x * y * z)
     def write(self, io: BinaryIO):
         io.write(pack("<I", self.data_count))
     #
+
+    def __eq__(self, other: GRUV) -> bool:
+        return self.data_count == other.data_count
+    #
 #
 
 class GEOM(Chunk):  # This chunk is idiotic.  Four copies of the prop list also found in the GLGM chunk??
@@ -445,6 +464,10 @@ class GEOM(Chunk):  # This chunk is idiotic.  Four copies of the prop list also 
         io.write(pack("<fIIIIIIII", self.unkflt, prop_list_0_size, prop_list_1_size, prop_list_2_size, prop_list_3_size, prop_list_0_base, prop_list_1_base, prop_list_2_base, prop_list_3_base))
         io.seek(filepos_back)
     #
+
+    def __eq__(self, other: GEOM) -> bool:
+        return self.unkflt == other.unkflt and self.props_0 == other.props_0 and self.props_1 == other.props_1 and self.props_2_raw == other.props_2_raw and self.props_3 == other.props_3
+    #
 #
 
 class GLGM(Chunk):  # Little-Endian
@@ -454,6 +477,10 @@ class GLGM(Chunk):  # Little-Endian
 
     def write(self, io: BinaryIO) -> None:
         self.props.write('<', io)
+    #
+
+    def __eq__(self, other: GLGM) -> bool:
+        return self.props == other.props
     #
 #
 
@@ -465,6 +492,10 @@ class GCGM(Chunk):  # Big-Endian
     def write(self, io: BinaryIO) -> None:
         self.props.write('>', io)
     #
+
+    def __eq__(self, other: GCGM) -> bool:
+        return self.props == other.props
+    #
 #
 
 class CTEX(Chunk):
@@ -474,6 +505,10 @@ class CTEX(Chunk):
 
     def write(self, io: BinaryIO):
         write_psxtexfile(io, self.textures)
+    #
+
+    def __eq__(self, other: CTEX) -> bool:
+        return self.textures == other.textures
     #
 #
 
@@ -491,6 +526,10 @@ class CATR(Chunk):
         io.write(pack("<I", len(self.packet_lists)))
         for packet_list in self.packet_lists:
             packet_list.write(io)
+    #
+
+    def __eq__(self, other: CATR) -> bool:
+        return self.packet_lists == other.packet_lists
     #
 #
 
@@ -512,6 +551,10 @@ class CANM(Chunk):
         for packet_list in self.packet_lists:
             packet_list.write(io)
     #
+
+    def __eq__(self, other: CANM) -> bool:
+        return self.packet_lists == other.packet_lists
+    #
 #
 
 class HEAD(Chunk):
@@ -524,6 +567,10 @@ class HEAD(Chunk):
     def write(self, io: BinaryIO):
         io.write(pack("<III", self.x, self.y, self.z))
     #
+
+    def __eq__(self, other: HEAD) -> bool:
+        return self.x == other.x and self.y == other.y and self.z == other.z
+    #
 #
 
 class DATA(Chunk):
@@ -535,6 +582,10 @@ class DATA(Chunk):
     def write(self, io: BinaryIO):
         count = len(self.data)
         io.write(pack(f"<{count}I", *self.data))
+    #
+
+    def __eq__(self, other: DATA) -> bool:
+        return self.data == other.data
     #
 #
 
@@ -557,7 +608,10 @@ class NAME(Chunk):
             offs += len(name) + 1
         for name in self.names:
             io.write(name + b'\0');
+    #
 
+    def __eq__(self, other: NAME) -> bool:
+        return self.names == other.names
     #
 #
 
@@ -578,6 +632,10 @@ class PATH(Chunk):
         io.write(pack("<I", len(self.packet_lists)))
         for packet_list in self.packet_lists:
             packet_list.write(io)
+    #
+
+    def __eq__(self, other: PATH) -> bool:
+        return self.packet_lists == other.packet_lists
     #
 #
 
@@ -625,6 +683,10 @@ class ACTI(Chunk):
         for packet_list in self.actors:
             packet_list.write(io)
     #
+
+    def __eq__(self, other: ACTI) -> bool:
+        return self.actors == other.actors
+    #
 #
 
 class VARS(Chunk):
@@ -634,5 +696,9 @@ class VARS(Chunk):
 
     def write(self, io: BinaryIO):
         self.packet_list.write(io)
+    #
+
+    def __eq__(self, other: VARS) -> bool:
+        return self.packet_list == other.packet_list
     #
 #
