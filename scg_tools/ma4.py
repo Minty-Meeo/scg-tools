@@ -228,12 +228,18 @@ class Packet(object):
     #
 
     def json_dump(self):
-        return {"type": self.type, "unk": self.unk, "data": hexlify(self.data, " ", 4).decode(), "stupid": self.stupid}
+        if self.stupid:
+            return {"type": self.type, "unk": self.unk, "data": hexlify(self.data, " ", 4).decode(), "stupid": True}
+        else:
+            return {"type": self.type, "unk": self.unk, "data": hexlify(self.data, " ", 4).decode()}
     #
 
     @staticmethod
     def json_load(vals: dict) -> Packet:
-        return Packet(vals["type"], vals["unk"], unhexlify(vals["data"].replace(" ", "")), vals["stupid"])
+        if "stupid" in vals:
+            return Packet(vals["type"], vals["unk"], unhexlify(vals["data"].replace(" ", "")), vals["stupid"])
+        else:
+            return Packet(vals["type"], vals["unk"], unhexlify(vals["data"].replace(" ", "")), False)
     #
 #
 
