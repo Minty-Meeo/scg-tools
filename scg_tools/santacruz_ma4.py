@@ -22,6 +22,16 @@ def dump_props_wavefront_obj(props: list[Prop], images: list[Image.Image], direc
         with open_helper(f"{directory}/{prop_name}.obj", "w", True, True) as f:
             prop.dump_wavefront_obj(f)
     
+    with open_helper(f"{directory}/materials.mtl", "w", True, True) as f:
+        for n in range(len(images)):
+            f.write(f"newmtl material_{n}\n"
+                    f"  illum 1\n"  # Color on and Ambient on
+                    f"  map_Kd material_{n}.png\n"  # Texture diffuse
+                    f"  map_Ka material_{n}.png\n"  # Texture ambient
+                    # These two do the same thing, it just depends on the implementation which one is used.  Blender uses dissolve.
+                    f"  map_Tr material_{n}.png\n"  # Texture transparency
+                    f"  map_d  material_{n}.png\n") # Texture dissolve
+
     for [n, image] in enumerate(images):
         with open_helper(f"{directory}/material_{n}.png", "wb", True, True) as f:
             image.save(f)

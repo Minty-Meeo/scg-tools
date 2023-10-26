@@ -160,6 +160,7 @@ class Prop(object):
     #
 
     def dump_wavefront_obj(self, io: TextIO) -> None:
+        io.write("mtllib materials.mtl\n")
         if Prop.old_format_parse:
             for [u, v, x, y, z, xn, yn, zn, r, g, b, a] in self.vertexes:
                 x = -x; y = -y; r = r / 255; g = g / 255; b = b / 255
@@ -175,6 +176,7 @@ class Prop(object):
         callback = lambda tri : io.write("f {0:}/{0:}/{0:} {1:}/{1:}/{1:} {2:}/{2:}/{2:}\n".format(tri[2]+1, tri[1]+1, tri[0]+1))  # Wavefront OBJ is not zero-indexed... eww...
         for mesh in self.meshes:
             io.write("o {:s}\n".format(self.name.decode(codepage)))
+            io.write("usemtl material_{:d}\n".format(mesh.material_idx))
             for primitive in mesh.primitive_data:
                 tristrip_walk(callback, primitive)
     #
