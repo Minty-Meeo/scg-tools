@@ -233,7 +233,7 @@ class Packet(object):
 
     @staticmethod
     def json_load(vals: dict) -> Packet:
-        return Packet(vals["type"], vals["unk"], unhexlify(vals["data"].encode()), vals["stupid"])
+        return Packet(vals["type"], vals["unk"], unhexlify(vals["data"].replace(" ", "")), vals["stupid"])
     #
 #
 
