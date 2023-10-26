@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 from __future__ import annotations
+from binascii import hexlify, unhexlify
 from io import BytesIO
 from struct import unpack, pack
 from typing import BinaryIO, TextIO
@@ -225,6 +226,15 @@ class Packet(object):
     def __eq__(self, other: Packet):
         return self.type == other.type and self.unk == other.unk and self.data == other.data and self.stupid == other.stupid
     #
+
+    def json_dump(self):
+        return {"type": self.type, "unk": self.unk, "data": hexlify(self.data, " ", 4).decode(), "stupid": self.stupid}
+    #
+
+    @staticmethod
+    def json_load(vals: dict) -> Packet:
+        return Packet(vals["type"], vals["unk"], unhexlify(vals["data"].encode()), vals["stupid"])
+    #
 #
 
 class PacketList(list[Packet]):
@@ -246,6 +256,7 @@ class PacketList(list[Packet]):
     def write(self, io: BinaryIO):
         for packet in self:
             if packet.stupid:
+                assert len(packet.data) // 4 == 3, "Stupid packet is not 12 bytes large (size != 3)."
                 io.write(pack("<HBB", packet.type, packet.unk, 0))
             else:
                 io.write(pack("<HBB", packet.type, packet.unk, len(packet.data) // 4))
@@ -258,6 +269,16 @@ class PacketList(list[Packet]):
             if packet.type == type:
                 return packet.data
         raise IndexError("Packet of type {:d} not found".format(type))
+    #
+
+    def json_dump(self):
+        return [packet.json_dump() for packet in self]
+    #
+
+    @staticmethod
+    def json_load(vals: list) -> PacketList:
+        return PacketList([Packet.json_load(packet_vals) for packet_vals in vals])
+    #
 #
 
 class CHKFMAPError(Exception):
@@ -531,6 +552,14 @@ class CATR(Chunk):
     def __eq__(self, other: CATR) -> bool:
         return self.packet_lists == other.packet_lists
     #
+
+    def json_dump(self):
+        return [packet_list.json_dump() for packet_list in self.packet_lists]
+    #
+
+    def json_load(self, vals: list) -> PacketList:
+        self.packet_lists = [PacketList.json_load(packetlist_vals) for packetlist_vals in vals]
+    #
 #
 
 class CANM(Chunk):
@@ -554,6 +583,14 @@ class CANM(Chunk):
 
     def __eq__(self, other: CANM) -> bool:
         return self.packet_lists == other.packet_lists
+    #
+
+    def json_dump(self):
+        return [packet_list.json_dump() for packet_list in self.packet_lists]
+    #
+
+    def json_load(self, vals: list) -> PacketList:
+        self.packet_lists = [PacketList.json_load(packetlist_vals) for packetlist_vals in vals]
     #
 #
 
@@ -637,6 +674,14 @@ class PATH(Chunk):
     def __eq__(self, other: PATH) -> bool:
         return self.packet_lists == other.packet_lists
     #
+
+    def json_dump(self):
+        return [packet_list.json_dump() for packet_list in self.packet_lists]
+    #
+
+    def json_load(self, vals: list) -> PacketList:
+        self.packet_lists = [PacketList.json_load(packetlist_vals) for packetlist_vals in vals]
+    #
 #
 
 def actor_id_translation(id: int) -> int:  # The programmers at SCG were smoking crack.
@@ -687,6 +732,14 @@ class ACTI(Chunk):
     def __eq__(self, other: ACTI) -> bool:
         return self.actors == other.actors
     #
+
+    def json_dump(self):
+        return [actor.json_dump() for actor in self.actors]
+    #
+
+    def json_load(self, vals: list) -> PacketList:
+        self.actors = [PacketList.json_load(packetlist_vals) for packetlist_vals in vals]
+    #
 #
 
 class VARS(Chunk):
@@ -700,5 +753,13 @@ class VARS(Chunk):
 
     def __eq__(self, other: VARS) -> bool:
         return self.packet_list == other.packet_list
+    #
+
+    def json_dump(self):
+        return self.packet_list.json_dump()
+    #
+
+    def json_load(self, vals: list) -> PacketList:
+        self.packet_list = [Packet.json_load(packet_vals) for packet_vals in vals]
     #
 #

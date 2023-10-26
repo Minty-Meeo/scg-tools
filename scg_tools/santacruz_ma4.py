@@ -4,10 +4,11 @@
 from __future__ import annotations
 from argparse import ArgumentParser
 from struct import unpack
-from typing import BinaryIO
+from typing import BinaryIO, TextIO
+import json
 
 from PIL import Image
-from scg_tools.ma4 import CHKFMAP, GEOM, GLGM, GCGM, CTEX, ACTI, Prop, PacketList, codepage, actor_id_translation
+from scg_tools.ma4 import CHKFMAP, GEOM, GLGM, GCGM, CTEX, CATR, CANM, PATH, ACTI, VARS, Prop, PacketList, codepage, actor_id_translation
 from scg_tools.misc import open_helper
 from scg_tools.tex import decode_psxtexfile, write_psxtexfile
 from scg_tools.txg import decode_gcmaterials, parse_gcmaterials
@@ -70,6 +71,33 @@ def remove_bad_actors(chkfmap: CHKFMAP) -> None:
     acti_chunk.actors = list(filter(good_actor, acti_chunk.actors))
 #
 
+
+def dump_catr_json(chkfmap: CHKFMAP, io: TextIO):
+    catr_chunk: CATR = chkfmap.at(b'CELS').at(b'CATR')
+    json.dump(catr_chunk.json_dump(), io, indent="  ")
+#
+
+def dump_canm_json(chkfmap: CHKFMAP, io: TextIO):
+    canm_chunk: CANM = chkfmap.at(b'CELS').at(b'CANM')
+    json.dump(canm_chunk.json_dump(), io, indent="  ")
+#
+
+def dump_path_json(chkfmap: CHKFMAP, io: TextIO):
+    path_chunk: PATH = chkfmap.at(b'MAP_').at(b'PATH')
+    json.dump(path_chunk.json_dump(), io, indent="  ")
+#
+
+def dump_acti_json(chkfmap: CHKFMAP, io: TextIO):
+    acti_chunk: ACTI = chkfmap.at(b'MAP_').at(b'ACTI')
+    json.dump(acti_chunk.json_dump(), io, indent="  ")
+#
+
+def dump_vars_json(chkfmap: CHKFMAP, io: TextIO):
+    vars_chunk: VARS = chkfmap.at(b'MAP_').at(b'VARS')
+    json.dump(vars_chunk.json_dump(), io, indent="  ")
+#
+
+
 def main() -> int:
     parser = ArgumentParser()
     parser.add_argument("-i", "--input",
@@ -109,6 +137,36 @@ def main() -> int:
         action="store_true",
         dest="remove_bad_actors",
         help="Remove actors which cause a game crash. This is important for Pickles World 2 Levels 1-2.")
+    parser.add_argument("--dump-catr-json",
+        action="store",
+        type=str,
+        dest="catr_json_path",
+        help="Dump the packet data from the CATR chunk to a JSON file",
+        metavar="JSON_PATH")
+    parser.add_argument("--dump-canm-json",
+        action="store",
+        type=str,
+        dest="canm_json_path",
+        help="Dump the packet data from the CANM chunk to a JSON file",
+        metavar="JSON_PATH")
+    parser.add_argument("--dump-path-json",
+        action="store",
+        type=str,
+        dest="path_json_path",
+        help="Dump the packet data from the PATH chunk to a JSON file",
+        metavar="JSON_PATH")
+    parser.add_argument("--dump-acti-json",
+        action="store",
+        type=str,
+        dest="acti_json_path",
+        help="Dump the packet data from the ACTI chunk to a JSON file",
+        metavar="JSON_PATH")
+    parser.add_argument("--dump-vars-json",
+        action="store",
+        type=str,
+        dest="vars_json_path",
+        help="Dump the packet data from the VARS chunk to a JSON file",
+        metavar="JSON_PATH")
     parser.add_argument("-o", "--output",
         action="store",
         type=str,
@@ -144,6 +202,22 @@ def main() -> int:
 
     if options.remove_bad_actors:
         remove_bad_actors(chkfmap)
+    
+    if options.catr_json_path:
+        with open_helper(options.catr_json_path, "w", True, True) as f:
+            dump_catr_json(chkfmap, f)
+    if options.canm_json_path:
+        with open_helper(options.canm_json_path, "w", True, True) as f:
+            dump_canm_json(chkfmap, f)
+    if options.path_json_path:
+        with open_helper(options.path_json_path, "w", True, True) as f:
+            dump_path_json(chkfmap, f)
+    if options.acti_json_path:
+        with open_helper(options.acti_json_path, "w", True, True) as f:
+            dump_acti_json(chkfmap, f)
+    if options.vars_json_path:
+        with open_helper(options.vars_json_path, "w", True, True) as f:
+            dump_vars_json(chkfmap, f)
     
     if options.output:
         with open_helper(options.output, "wb", True, True) as f:
