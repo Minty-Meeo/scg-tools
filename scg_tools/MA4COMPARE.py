@@ -1,11 +1,10 @@
 # Copyright 2023 Bradley G (Minty Meeo)
 # SPDX-License-Identifier: MIT
 
-from itertools import zip_longest
 from sys import argv
 from os import path
 
-from scg_tools.ma4 import CHKFMAP, MAP_, CELS, GRUV, HEAD, DATA, NAME, PATH, VARS, ACTI, GEOM, GLGM, GCGM, CTEX, CATR, CANM, Header, Chunk, PacketList
+from scg_tools.ma4 import CHKFMAP, Chunk
 
 def get(chkfmap: CHKFMAP, tid1: bytes, tid2: bytes | None = None) -> Chunk | None:
     try:
@@ -27,8 +26,8 @@ def print_missing(tid: str, a: Chunk | None, b: Chunk | None) -> bool:
 #
 
 def compare_chunk(chkfmap_a: CHKFMAP, chkfmap_b: CHKFMAP, tid1: bytes, tid2: bytes) -> None:
-    a: HEAD | None = get(chkfmap_a, tid1, tid2)
-    b: HEAD | None = get(chkfmap_b, tid1, tid2)
+    a: Chunk | None = get(chkfmap_a, tid1, tid2)
+    b: Chunk | None = get(chkfmap_b, tid1, tid2)
     tid_s = tid2.decode() if tid2 else tid1.decode()
     if print_missing(tid_s, a, b): return
     print(f"< {tid_s} > A {'==' if a == b else '!='} < {tid_s} > B")
