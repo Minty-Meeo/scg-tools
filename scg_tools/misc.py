@@ -30,6 +30,11 @@ def read_c_string(io: BinaryIO):
     return io.read(size)
 #
 
+def decode_c_string(c_string: bytes, encoding: str = "utf-8", errors: str = "strict") -> str:
+    assert b'\0' in c_string
+    return c_string[:c_string.find(b'\0')].decode(encoding, errors)
+#
+
 def tristrip_walk(callback: function, primitive: list[int]):
     assert len(primitive) >= 3
     step = False

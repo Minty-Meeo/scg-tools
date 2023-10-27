@@ -7,7 +7,7 @@ from io import BytesIO
 from struct import unpack, pack
 from typing import BinaryIO, TextIO
 
-from scg_tools.misc import read_exact, read_c_string, align_up, tristrip_walk
+from scg_tools.misc import read_exact, read_c_string, decode_c_string, align_up, tristrip_walk
 from scg_tools.tex import parse_psxtexfile, write_psxtexfile
 
 codepage = "windows-1250"
@@ -578,7 +578,7 @@ class CANM(Chunk):
         for i in range(count):
             packet_list = PacketList.parse(io)
             # Repeating packet type 3 is clearly animation data (Prop IDs).
-            name = packet_list.at(1).rstrip(b'\0').decode(codepage)  # Message
+            name = decode_c_string(packet_list.at(1), codepage)  # Message
             print("{:2d}   name: {:>20s}".format(i, name))
             self.packet_lists.append(packet_list)
     #
@@ -668,7 +668,7 @@ class PATH(Chunk):
         for i in range(count):
             packet_list = PacketList.parse(io)
             # Repeating packet type 3 is clearly animation data (Prop IDs).
-            name = packet_list.at(1).rstrip(b'\0').decode(codepage)  # Message
+            name = decode_c_string(packet_list.at(1), codepage)  # Message
             print("{:2d}   name: {:s}".format(i, name))
             self.packet_lists.append(packet_list)
     #
@@ -721,7 +721,7 @@ class ACTI(Chunk):
 
             state = unpack("<i", packet_list.at(0))[0]  # Initial state or actor variant
             x, y, z = unpack("<iii", packet_list.at(2))  # Coarse XYZ Pos
-            message = packet_list.at(3).rstrip(b'\0').decode(codepage)  # Message
+            message = decode_c_string(packet_list.at(3), codepage)  # Message
             id = unpack("<i", packet_list.at(4))[0]  # Actor ID
             if dbgprint: print("{:2d}   state: {:2d}   xyz: {:3d} {:3d} {:3d}   message: {:>20s}   id: {:4d}".format(i, state, x, y, z, message, id), end = "")
             if id > 0xEFFF:  # See 800054e4
