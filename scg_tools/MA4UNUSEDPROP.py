@@ -35,8 +35,11 @@ def main() -> int:
             if packet.type != 3:
                 continue
             id = unpack("<I", packet.data)[0]
-            if id not in canm_found: canm_found[id] = list[str]()
-            canm_found[id].append(canm_name)
+            if id not in canm_found:
+                canm_found[id] = [canm_name]
+            else:
+                if canm_name not in canm_found[id]:
+                    canm_found[id].append(canm_name)
 
     longest_prop_name = 0
     for prop in gcgm_chunk.props:
