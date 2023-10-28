@@ -5,7 +5,7 @@ from struct import unpack
 from sys import argv
 from os import path
 
-from scg_tools.ma4 import CHKFMAP, DATA, GCGM, CANM, codepage
+from scg_tools.ma4 import CHKFMAP, DATA, GCGM, CANM, data_id_translation, codepage
 from scg_tools.misc import decode_c_string
 
 def help(progname: str) -> None:
@@ -26,7 +26,7 @@ def main() -> int:
 
     data_found = set[int]()
     for id in data_chunk.data:
-        data_found.add(id)
+        data_found.add(data_id_translation(id))
     
     canm_found = dict[int, list[str]]()
     for packet_list in canm_chunk.packet_lists:

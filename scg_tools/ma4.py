@@ -692,12 +692,16 @@ class PATH(Chunk):
     #
 #
 
-def actor_id_translation(id: int) -> int:  # The programmers at SCG were smoking crack.
+def actor_id_translation(id: int) -> int:  # 800051dc
     if id > 8191:
         return id - 8160
     if id > 12:
         return id - 4083
     return id
+#
+
+def data_id_translation(id: int) -> int:  # 8000474c and 80004910
+    return id & 1023  # 0x3FF is air cell
 #
 
 actor_names = (     None, "heartstun",      "tk",        None,        None,              "health",    "pickup",     "lives",
