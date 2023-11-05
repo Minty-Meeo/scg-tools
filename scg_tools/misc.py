@@ -45,6 +45,21 @@ def tristrip_walk(callback: function, primitive: list[int]):
         callback(tri)
 #
 
+def tristrip_walk_new(callback: function, position_primitive: list[int], texture_coordinate_primitive: list[int], normal_primitive: list[int]):
+    assert len(position_primitive) == len(texture_coordinate_primitive) == len(normal_primitive) and len(position_primitive) >= 3
+    step = False
+    for i in range(len(position_primitive) - 2):
+        tri_pos = (position_primitive[i], position_primitive[i+1+step], position_primitive[i+2-step])
+        tri_tex = (texture_coordinate_primitive[i], texture_coordinate_primitive[i+1+step], texture_coordinate_primitive[i+2-step])
+        tri_nrm = (normal_primitive[i], normal_primitive[i+1+step], normal_primitive[i+2-step])
+        step = not step
+        if (tri_pos[0] == tri_pos[1] or tri_pos[1] == tri_pos[2] or tri_pos[0] == tri_pos[2]) and \
+           (tri_pos[0] == tri_pos[1] or tri_pos[1] == tri_pos[2] or tri_pos[0] == tri_pos[2]) and \
+           (tri_pos[0] == tri_pos[1] or tri_pos[1] == tri_pos[2] or tri_pos[0] == tri_pos[2]):
+            continue  # Remove degenerate tri
+        callback(tri_pos, tri_tex, tri_nrm)
+#
+
 def tristrip_to_tris(primitive: list[int]):
     tris = list()
     tristrip_walk(lambda tri : tris.append(tri), primitive)
