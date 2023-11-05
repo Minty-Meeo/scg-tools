@@ -165,8 +165,8 @@ class Prop(object):
             for [u, v, x, y, z, xn, yn, zn, r, g, b, a] in self.vertexes:
                 x = -x; y = -y; r = r / 255; g = g / 255; b = b / 255
                 io.write(f"v {x} {y} {z} {r} {g} {b}\n"  # Sorry, no alpha
-                            f"vn {xn} {yn} {zn}\n"
-                            f"vt {u} {v}\n")
+                         f"vn {xn} {yn} {zn}\n"
+                         f"vt {u} {v}\n")
         else:
             for [u, v, x, y, z, xn, yn, zn, r, g, b, a] in self.vertexes:
                 u = u / 4096; v = -v / 4096; x = -x; y = -y; r = r / 255; g = g / 255; b = b / 255
