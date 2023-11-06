@@ -3,7 +3,7 @@ from struct import unpack
 from sys import argv
 from typing import BinaryIO, TextIO
 
-from scg_tools.misc import read_exact, tristrip_walk_new
+from scg_tools.misc import read_exact, tristrip_walk_new, open_helper
 
 class GCMesh(object):
     class Mesh(object):
@@ -100,7 +100,7 @@ class GCMesh(object):
         joints = [GCMesh.Joint(*data) for data in joint_data]
 
         for joint in joints:
-            print("{:3d} {:3d} {} {} {} {}".format(joint.vtx_begin, joint.vtx_count, joint.joint_pos_idx, joint.debug_a, joint.hierarchy, joint.unk4))
+            print("{:4} {:4} {:2} {:2} {:2} {:4x}".format(joint.vtx_begin, joint.vtx_count, joint.joint_pos_idx, joint.debug_a, joint.hierarchy, joint.unk4))
             
         return GCMesh(vtx_pos_nrm, vtx_uv_coord, vtx_color0, meshes, primitive_indirection, joint_positions, joints)
     #
@@ -136,9 +136,10 @@ class GCMesh(object):
 def main() -> int:
     if len(argv) < 3:
         return 1
+    print(argv[1])
     with open(argv[1], "rb") as f:
         gsh = GCMesh.parse(f)
-    with open(argv[2], "w") as f:
+    with open_helper(argv[2], "w", True, True) as f:
         gsh.dump_wavefront_obj(f)
 #
 
