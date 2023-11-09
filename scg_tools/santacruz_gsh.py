@@ -13,29 +13,52 @@ class GCMesh(object):
         #
     #
 
-    class Joint(object):
-        def __init__(self, vtx_begin: int, vtx_count: int, joint_pos_idx: int, debug_a: int, unk3: int, unk4: int):
+    class Skinning(object):
+        def __init__(self, vtx_begin: int, vtx_count: int, joint_idx_a: int, joint_idx_b: int, rank: int, weight_fxdpnt: int):
             self.vtx_begin = vtx_begin
             self.vtx_count = vtx_count
-            self.joint_pos_idx = joint_pos_idx  # Just a guess
-            self.debug_a = debug_a  # Only read from when R trigger debug is turned on (80031354).
-            self.hierarchy = unk3  # Gets converted to a float.  Is this an index, but for what?
-            self.unk4 = unk4
+            self.joint_idx_a = joint_idx_a
+            self.joint_idx_b = joint_idx_b      # Only used when weight is non-zero or when R trigger debug is turned on (80031354).
+            self.rank = rank
+            self.weight_fxdpnt = weight_fxdpnt  # fixed-point integer weight, later converted to float.  Zero means simple weight.
         #
     #
 
-    def __init__(self, vtx_pos_nrm: list, vtx_uv_coord: list, vtx_color0: list, meshes: list[GCMesh.Mesh], primitive_indirection: list, joint_positions: list, joints: list[Joint]):
+    class CollInfo(object):
+        def __init__(self, unused_vec4f: tuple[float], joint_parent: int, radius: float, src_vec4f: tuple[float], dst_vec4f: tuple[float]):
+            self.unused_vec4f = unused_vec4f  # Nothing ever reads from or writes to it
+            self.joint_parent = joint_parent  # Joint parent
+            self.radius = radius              # Collision sphere radius
+            self.src_vec4f = src_vec4f        # Collision sphere offset from joint
+            self.dst_vec4f = dst_vec4f        # Is overwritten by PSMTXMultVec at 800335ac
+        #
+
+        @staticmethod
+        def parse(io: BinaryIO) -> GCMesh.CollInfo:
+            unused_vec4f = unpack(">ffff", io.read(16))       
+            [joint_position_idx, radius] = unpack(">If", io.read(8))
+            src_vec4f = unpack(">ffff", io.read(16))
+            dst_vec4f = unpack(">ffff", io.read(16))
+            return GCMesh.CollInfo(unused_vec4f, joint_position_idx, radius, src_vec4f, dst_vec4f)
+        #
+    #
+
+    def __init__(self, vtx_pos_nrm: list, vtx_uv_coord: list, vtx_color0: list, meshes: list[Mesh], primitive_indirection: list, joints: list, skinnings: list[Skinning], collinfos: list[CollInfo]):
         self.vtx_pos_nrm = vtx_pos_nrm
         self.vtx_uv_coord = vtx_uv_coord
         self.vtx_color0 = vtx_color0
         self.meshes = meshes
         self.primitive_indirection = primitive_indirection
-        self.joint_positions = joint_positions
         self.joints = joints
+        self.skinnings = skinnings
+        self.collinfos = collinfos
+    #
     
     @staticmethod
     def parse(io: BinaryIO) -> GCMesh:
-        [joint_positions_count, joint_data_count, joint_positions_offs, mystery_vec4f_data_offs, mystery_vec4f_data_count, unk_offs, joint_data_offs] = unpack(">HHIIIII", read_exact(io, 24))
+        # unk_offs is only notable in heartstn.gsh, which unfortunately is an incredibly broken model, so it's barely helpful for research.
+        # unk_offs seems to point to an array of metadata terminated by a word-sized null terminator (0x00000000), except for the files where it doesn't.  Maybe this was phased out by later Santa Cruz Games tooling?
+        [joint_count, joint_data_count, joint_offs, unk_offs, joint_collinfo_count, joint_collinfo_offs, joint_data_offs] = unpack(">HHIIIII", read_exact(io, 24))
         [vtx_count, primitive_meta_count, mesh_count, _, vtx_pos_nrm_offs, vtx_uv_coord_offs, vtx_color0_offs] = unpack(">IIIIIII", read_exact(io, 28))
         [primitive_meta_offs, primitive_data_offs, primitive_indirection_offs] = unpack(">III", read_exact(io, 12))
         [wtf_offs_1, wtf_offs_2, material_idx_offs, mesh_primitive_start_offs, mesh_primitive_size_offs] = unpack(">IIIII", read_exact(io, 20))
@@ -48,24 +71,17 @@ class GCMesh(object):
         vtx_color0_count = (primitive_meta_offs - vtx_color0_offs) // 4
         if vtx_uv_coord_count != vtx_count: print("This model is retarded! (color0)")
 
-        io.seek(joint_positions_offs)
-        joint_positions = [unpack(">iiii", read_exact(io, 16)) for _ in range(joint_positions_count)]
+        io.seek(joint_offs)
+        joints = [unpack(">iiii", read_exact(io, 16)) for _ in range(joint_count)]
 
-        io.seek(mystery_vec4f_data_offs)
-        def read_mystery_vec4f_data():
-            unused_vec4f = unpack(">ffff", io.read(16))  # Unused?  Really?  Nothing ever reads from or writes to it.
-            joint_position_idx = unpack(">I", io.read(4))[0]  # Is loaded in loop at 80033590 comparing against joint position indices
-            unk_float = unpack(">f", io.read(4))[0]  # Is loaded at 80003fbc
-            src_vec4f = unpack(">ffff", io.read(16))
-            dst_vec4f = unpack(">ffff", io.read(16))  # Starts uninitialized (0xCC bytes), is overwritten by PSMTXMultVec at 800335ac
-            return (unused_vec4f, joint_position_idx, unk_float, src_vec4f, dst_vec4f)
-        mystery_vec4f_data = [read_mystery_vec4f_data() for _ in range(mystery_vec4f_data_count)]
+        io.seek(joint_collinfo_offs)
+        collinfos = [GCMesh.CollInfo.parse(io) for _ in range(joint_collinfo_count)]
 
         io.seek(joint_data_offs)
         joint_data = [unpack(">HHhhHH", read_exact(io, 12)) for _ in range(joint_data_count)]
         
         io.seek(vtx_pos_nrm_offs)
-        vtx_pos_nrm = [list(unpack(">ffffff", read_exact(io, 24))) for _ in range(vtx_pos_nrm_count)]
+        vtx_pos_nrm = [unpack(">ffffff", read_exact(io, 24)) for _ in range(vtx_pos_nrm_count)]
         
         io.seek(vtx_uv_coord_offs)
         vtx_uv_coord = [unpack(">ff", read_exact(io, 8)) for _ in range(vtx_uv_coord_count)]
@@ -97,26 +113,54 @@ class GCMesh(object):
             head = mesh_primitive_starts[i]; tail = head + mesh_primitive_sizes[i]
             return GCMesh.Mesh(material_idxs[i], primitive_data[head:tail])
         meshes = [make_mesh(i) for i in range(mesh_count)]
-        joints = [GCMesh.Joint(*data) for data in joint_data]
-
-        for joint in joints:
-            print("{:4} {:4} {:2} {:2} {:2} {:4x}".format(joint.vtx_begin, joint.vtx_count, joint.joint_pos_idx, joint.debug_a, joint.hierarchy, joint.unk4))
+        skinnings = [GCMesh.Skinning(*data) for data in joint_data]
             
-        return GCMesh(vtx_pos_nrm, vtx_uv_coord, vtx_color0, meshes, primitive_indirection, joint_positions, joints)
+        return GCMesh(vtx_pos_nrm, vtx_uv_coord, vtx_color0, meshes, primitive_indirection, joints, skinnings, collinfos)
     #
 
+    # weight_fxdpnt notes:
+    # 800321d8 > load u16 from joint
+    # 800321e8 v
+    # 80032208 v
+    # 80032234 v
+    # 8003223c > integer to float conversion
+    # 80032264 > multiply by floating point value 1/65536
+    # 8003236c > if greater than 0, run more complex logic
+
+    # 80032cd0 v
+    # 80032cd4 v
+    # 80032cd8 v
+    # 80032cdc > 1 - value is multiplied to three floats.
+    # 80032d04 v
+    # 80032d0c v
+    # 80032d10 > value is multiplied to three floats
+    # 80032f64 v
+    # 80032f68 v
+    # 80032f6c v
+    # 80032f70 > 1 - value is multiplied to three floats.
+    # 80032fa8 v
+    # 80032fac v
+    # 80032fb0 > value is multiplied to three floats
+
     def dump_wavefront_obj(self, io: TextIO) -> None:
-        vtx_pos_nrm = self.vtx_pos_nrm
-        hierarchy_history = dict()
-        for joint in self.joints:
-            hierarchy_history[joint.hierarchy] = joint
-            vtx_head = joint.vtx_begin; vtx_tail = vtx_head + joint.vtx_count
-            for i in range(joint.hierarchy, -1, -1):
-                joint_position = self.joint_positions[hierarchy_history[i].joint_pos_idx]
+        vtx_pos_nrm = [list(x) for x in self.vtx_pos_nrm]
+        joint_stack = dict[list[float, float, float, float]]()
+        for skinning in self.skinnings:
+            if skinning.weight_fxdpnt == 0:
+                joint_stack[skinning.rank] = self.joints[skinning.joint_idx_a]
+            else:
+                # This doesn't work at all.  I don't understand it at all.  Modifying it in memory makes no sense.
+                weight = skinning.weight_fxdpnt / 0x10000  # This seems like an off-by-one error, but I think it's more accurate.
+                v1 = [f * (1 - weight) for f in self.joints[skinning.joint_idx_a]]
+                v2 = [f *      weight  for f in self.joints[skinning.joint_idx_b]]
+                joint_stack[skinning.rank] = [f1 + f2 for [f1, f2] in zip(v1, v2)]
+            vtx_head = skinning.vtx_begin; vtx_tail = vtx_head + skinning.vtx_count
+            for i in range(0, skinning.rank + 1):
+                curr_joint: tuple[float, float, float, float] = joint_stack[i]
                 for j in range(vtx_head, vtx_tail):
-                    vtx_pos_nrm[j][0] += joint_position[0]
-                    vtx_pos_nrm[j][1] += joint_position[1]
-                    vtx_pos_nrm[j][2] += joint_position[2]
+                    vtx_pos_nrm[j][0] += curr_joint[0]
+                    vtx_pos_nrm[j][1] += curr_joint[1]
+                    vtx_pos_nrm[j][2] += curr_joint[2]
         # TODO: vertex color0
         for [x, y, z, xn, yn, zn] in vtx_pos_nrm:
             io.write(f"v {-x} {-y} {z}\n"
@@ -139,6 +183,8 @@ def main() -> int:
     print(argv[1])
     with open(argv[1], "rb") as f:
         gsh = GCMesh.parse(f)
+    for joint in gsh.skinnings:
+        print("{:4} {:4} {:2} {:2} {:2} {:4x}".format(joint.vtx_begin, joint.vtx_count, joint.joint_idx_a, joint.joint_idx_b, joint.rank, joint.weight_fxdpnt))
     with open_helper(argv[2], "w", True, True) as f:
         gsh.dump_wavefront_obj(f)
 #
