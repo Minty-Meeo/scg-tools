@@ -38,8 +38,8 @@ def main() -> int:
     with open(options.input, "rb") as f:
         gsh = GCMesh.parse("<" if options.little_endian else ">", f)
     print("Skinnings:")
-    for joint in gsh.skinnings:
-        print("{:4} {:4} {:2} {:2} {:2} {:4x}".format(joint.vtx_begin, joint.vtx_count, joint.joint_idx_a, joint.joint_idx_b, joint.rank, joint.weight_fxdpnt))
+    for skinning in gsh.skinnings:
+        print("{:4} {:4} {:2} {:2} {:2} {:4x}".format(skinning.vtx_begin, skinning.vtx_count, skinning.joint_idx_a, skinning.joint_idx_b, skinning.rank, skinning.weight_fxdpnt))
     if options.obj_path:
         with open_helper(options.obj_path, "w", True, True) as f:
             gsh.dump_wavefront_obj(f)

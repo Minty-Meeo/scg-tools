@@ -18,6 +18,9 @@ def main() -> int:
     print(argv[1])
     with open(argv[1], "rb") as f:
         msh = PCMesh.parse(f)
+    print("Skinnings:")
+    for skinning in msh.skinnings:
+        print("{:4} {:4} {:2} {:2} {:2} {:4x}".format(skinning.vtx_begin, skinning.vtx_count, skinning.joint_idx_a, skinning.joint_idx_b, skinning.rank, skinning.weight_fxdpnt))
     with open_helper(argv[2], "w", True, True) as f:
         msh.dump_wavefront_obj(f)
     return 0
