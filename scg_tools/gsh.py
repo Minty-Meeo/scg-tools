@@ -24,6 +24,11 @@ class GCMesh(object):
             self.rank = rank
             self.weight_fxdpnt = weight_fxdpnt  # fixed-point integer weight, later converted to float.  Zero means simple weight.
         #
+
+        @staticmethod
+        def parse(io: BinaryIO) -> GCMesh.Skinning:
+            return GCMesh.Skinning(*unpack(">HHhhHH", read_exact(io, 12)))
+        #
     #
 
     class CollInfo(object):
@@ -60,7 +65,7 @@ class GCMesh(object):
     def parse(io: BinaryIO) -> GCMesh:
         # unk_offs is only notable in heartstn.gsh, which unfortunately is an incredibly broken model, so it's barely helpful for research.
         # unk_offs seems to point to an array of metadata terminated by a word-sized null terminator (0x00000000), except for the files where it doesn't.  Maybe this was phased out by later Santa Cruz Games tooling?
-        [joint_count, joint_data_count, joint_offs, unk_offs, joint_collinfo_count, joint_collinfo_offs, joint_data_offs] = unpack(">HHIIIII", read_exact(io, 24))
+        [joint_count, skinning_count, joint_offs, unk_offs, joint_collinfo_count, joint_collinfo_offs, skinning_offs] = unpack(">HHIIIII", read_exact(io, 24))
         [vtx_count, primitive_meta_count, mesh_count, _, vtx_pos_nrm_offs, vtx_uv_coord_offs, vtx_color0_offs] = unpack(">IIIIIII", read_exact(io, 28))
         [primitive_meta_offs, primitive_data_offs, primitive_indirection_offs] = unpack(">III", read_exact(io, 12))
         [wtf_offs_1, wtf_offs_2, material_idx_offs, mesh_primitive_start_offs, mesh_primitive_size_offs] = unpack(">IIIII", read_exact(io, 20))
@@ -79,8 +84,8 @@ class GCMesh(object):
         io.seek(joint_collinfo_offs)
         collinfos = [GCMesh.CollInfo.parse(io) for _ in range(joint_collinfo_count)]
 
-        io.seek(joint_data_offs)
-        joint_data = [unpack(">HHhhHH", read_exact(io, 12)) for _ in range(joint_data_count)]
+        io.seek(skinning_offs)
+        skinnings = [GCMesh.Skinning.parse(io) for _ in range(skinning_count)]
         
         io.seek(vtx_pos_nrm_offs)
         vtx_pos_nrm = [unpack(">ffffff", read_exact(io, 24)) for _ in range(vtx_pos_nrm_count)]
@@ -115,7 +120,6 @@ class GCMesh(object):
             head = mesh_primitive_starts[i]; tail = head + mesh_primitive_sizes[i]
             return GCMesh.Mesh(material_idxs[i], primitive_data[head:tail])
         meshes = [make_mesh(i) for i in range(mesh_count)]
-        skinnings = [GCMesh.Skinning(*data) for data in joint_data]
             
         return GCMesh(vtx_pos_nrm, vtx_uv_coord, vtx_color0, meshes, primitive_indirection, joints, skinnings, collinfos)
     #
