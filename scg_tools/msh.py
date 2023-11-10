@@ -25,6 +25,25 @@ class PCMesh(object):
         #
     #
 
+    class SemiFinalData(object):
+        def __init__(self, data_a: list, data_b: list, array: list):
+            self.data_a = data_a
+            self.data_b = data_b
+            self.array = array
+        #
+
+        data_format = "<xxxx bbbx xxxx bbxx"\
+                      " xxxx bbxx xxxx bbxx"
+
+        @staticmethod
+        def parse(io: BinaryIO) -> PCMesh.SemiFinalData:
+            data_a = unpack(PCMesh.SemiFinalData.data_format, read_exact(io, 32))
+            data_b = unpack(PCMesh.SemiFinalData.data_format, read_exact(io, 32))
+            array = unpack("<HHHH", read_exact(io, 8))
+            return PCMesh.SemiFinalData(data_a, data_b, array)
+        #
+    #
+
     class FinalData(object):
         def __init__(self, data_a: list, data_b: list, array: list):
             self.data_a = data_a
@@ -45,21 +64,21 @@ class PCMesh(object):
         #
     #
 
-    def __init__(self, vtx_poses: list, joints: list, skinnings: list[PCMesh.Skinning], finaldatas: list):
+    def __init__(self, vtx_poses: list, joints: list, skinnings: list[PCMesh.Skinning], semifinaldatas: list[SemiFinalData], finaldatas: list[FinalData]):
         self.vtx_poses = vtx_poses
         self.joints = joints
         self.skinnings = skinnings
+        self.semifinaldatas = semifinaldatas
         self.finaldatas = finaldatas
     #
 
     @staticmethod
     def parse(io: BinaryIO) -> PCMesh:
-        [vtx_count, finaldata_count, joint_count, skinning_count, _, mystery_count] = unpack("<HHHHHH", read_exact(io, 12))
+        [vtx_count, unk_count, joint_count, skinning_count, _, mystery_count] = unpack("<HHHHHH", read_exact(io, 12))
         [joint_offs, vtx_pos_offs, _, _, mystery_offs, _, skinning_offs] = unpack("<IIIIIII", read_exact(io, 28))
-        [finaldata_offs, finaldata_offs2, _, _, finaldata_offs3, finaldata_offs4, _, _, _, _, _, finaldata_count2, _, _] = unpack("<IIIIIIIIIIHHII", read_exact(io, 52))
+        [semifinaldata_offs, semifinaldata_offs2, _, _, semifinaldata_offs3, finaldata_offs, _, _, _, _, semifinaldata_count, finaldata_count, _, _] = unpack("<IIIIIIIIIIHHII", read_exact(io, 52))
         # Sanity testing (hopefully will be removed)
-        assert finaldata_count == finaldata_count2
-        assert finaldata_offs == finaldata_offs2 == finaldata_offs3 == finaldata_offs4
+        assert semifinaldata_offs == semifinaldata_offs2 == semifinaldata_offs3
         
         io.seek(vtx_pos_offs)
         vtx_poses = [unpack("<hhhh", read_exact(io, 8)) for _ in range(vtx_count)]
@@ -70,10 +89,13 @@ class PCMesh(object):
         io.seek(skinning_offs)
         skinnings = [PCMesh.Skinning.parse(io) for _ in range(skinning_count)]
 
+        io.seek(semifinaldata_offs)
+        semifinaldatas = [PCMesh.SemiFinalData.parse(io) for _ in range(semifinaldata_count)]
+
         io.seek(finaldata_offs)
         finaldatas = [PCMesh.FinalData.parse(io) for _ in range(finaldata_count)]
 
-        return PCMesh(vtx_poses, joints, skinnings, finaldatas)
+        return PCMesh(vtx_poses, joints, skinnings, semifinaldatas, finaldatas)
     #
 
     def dump_wavefront_obj(self, io: TextIO):
