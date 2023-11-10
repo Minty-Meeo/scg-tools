@@ -9,6 +9,7 @@ __entry_points__ = {
         "santacruz_txg = scg_tools.santacruz_txg:main",
         "santacruz_ma4 = scg_tools.santacruz_ma4:main",
         "santacruz_gsh = scg_tools.santacruz_gsh:main",
+        "santacruz_msh = scg_tools.santacruz_msh:main",
         "TEX2TXG = scg_tools.TEX2TXG:main",
         "MA4COMPARE = scg_tools.MA4COMPARE:main",
         "MA4UNUSEDPROP = scg_tools.MA4UNUSEDPROP:main",
