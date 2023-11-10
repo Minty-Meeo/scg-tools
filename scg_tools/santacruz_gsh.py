@@ -1,8 +1,8 @@
 # Copyright 2023 Bradley G (Minty Meeo)
 # SPDX-License-Identifier: MIT
 
-from sys import argv
 from os import path
+from argparse import ArgumentParser
 
 from scg_tools.gsh import GCMesh
 from scg_tools.misc import open_helper
@@ -13,17 +13,35 @@ def help(progname: str):
 #
 
 def main() -> int:
-    if len(argv) < 2:
-        help(path.basename(argv[0]))
+    parser = ArgumentParser()
+    parser.add_argument("-l", "--little-endian",
+        action="store_true",
+        dest="little_endian",
+        help="Switch to little endian mode (very few files require this).")
+    parser.add_argument("input",
+        action="store",
+        help="Input filepath of the GC Mesh file (*.gsh). This option is required.",
+        metavar="PATH")
+    parser.add_argument("--dump-wavefront-obj",
+        action="store",
+        dest="obj_path",
+        help="Convert to Wavefront OBJ file",
+        metavar="PATH")
+    
+    options = parser.parse_args()
+
+    if not options.input:
+        parser.print_help()
         return 1
-    print(argv[1])
-    with open(argv[1], "rb") as f:
-        gsh = GCMesh.parse(f)
+
+    print(options.input)
+    with open(options.input, "rb") as f:
+        gsh = GCMesh.parse("<" if options.little_endian else ">", f)
     print("Skinnings:")
     for joint in gsh.skinnings:
         print("{:4} {:4} {:2} {:2} {:2} {:4x}".format(joint.vtx_begin, joint.vtx_count, joint.joint_idx_a, joint.joint_idx_b, joint.rank, joint.weight_fxdpnt))
-    if len(argv) > 2:
-        with open_helper(argv[2], "w", True, True) as f:
+    if options.obj_path:
+        with open_helper(options.obj_path, "w", True, True) as f:
             gsh.dump_wavefront_obj(f)
     return 0
 #

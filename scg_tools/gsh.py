@@ -26,8 +26,8 @@ class GCMesh(object):
         #
 
         @staticmethod
-        def parse(io: BinaryIO) -> GCMesh.Skinning:
-            return GCMesh.Skinning(*unpack(">HHhhHH", read_exact(io, 12)))
+        def parse(endian, io: BinaryIO) -> GCMesh.Skinning:
+            return GCMesh.Skinning(*unpack(f"{endian}HHhhHH", read_exact(io, 12)))
         #
     #
 
@@ -41,11 +41,11 @@ class GCMesh(object):
         #
 
         @staticmethod
-        def parse(io: BinaryIO) -> GCMesh.CollInfo:
-            unused_vec4f = unpack(">ffff", io.read(16))       
-            [joint_position_idx, radius] = unpack(">If", io.read(8))
-            src_vec4f = unpack(">ffff", io.read(16))
-            dst_vec4f = unpack(">ffff", io.read(16))
+        def parse(endian, io: BinaryIO) -> GCMesh.CollInfo:
+            unused_vec4f = unpack(f"{endian}ffff", io.read(16))       
+            [joint_position_idx, radius] = unpack(f"{endian}If", io.read(8))
+            src_vec4f = unpack(f"{endian}ffff", io.read(16))
+            dst_vec4f = unpack(f"{endian}ffff", io.read(16))
             return GCMesh.CollInfo(unused_vec4f, joint_position_idx, radius, src_vec4f, dst_vec4f)
         #
     #
@@ -62,13 +62,13 @@ class GCMesh(object):
     #
     
     @staticmethod
-    def parse(io: BinaryIO) -> GCMesh:
+    def parse(endian, io: BinaryIO) -> GCMesh:
         # unk_offs is only notable in heartstn.gsh, which unfortunately is an incredibly broken model, so it's barely helpful for research.
         # unk_offs seems to point to an array of metadata terminated by a word-sized null terminator (0x00000000), except for the files where it doesn't.  Maybe this was phased out by later Santa Cruz Games tooling?
-        [joint_count, skinning_count, joint_offs, unk_offs, joint_collinfo_count, joint_collinfo_offs, skinning_offs] = unpack(">HHIIIII", read_exact(io, 24))
-        [vtx_count, primitive_meta_count, mesh_count, _, vtx_pos_nrm_offs, vtx_uv_coord_offs, vtx_color0_offs] = unpack(">IIIIIII", read_exact(io, 28))
-        [primitive_meta_offs, primitive_data_offs, primitive_indirection_offs] = unpack(">III", read_exact(io, 12))
-        [wtf_offs_1, wtf_offs_2, material_idx_offs, mesh_primitive_start_offs, mesh_primitive_size_offs] = unpack(">IIIII", read_exact(io, 20))
+        [joint_count, skinning_count, joint_offs, unk_offs, joint_collinfo_count, joint_collinfo_offs, skinning_offs] = unpack(f"{endian}HHIIIII", read_exact(io, 24))
+        [vtx_count, primitive_meta_count, mesh_count, _, vtx_pos_nrm_offs, vtx_uv_coord_offs, vtx_color0_offs] = unpack(f"{endian}IIIIIII", read_exact(io, 28))
+        [primitive_meta_offs, primitive_data_offs, primitive_indirection_offs] = unpack(f"{endian}III", read_exact(io, 12))
+        [wtf_offs_1, wtf_offs_2, material_idx_offs, mesh_primitive_start_offs, mesh_primitive_size_offs] = unpack(f"{endian}IIIII", read_exact(io, 20))
         assert wtf_offs_1 == wtf_offs_2 == material_idx_offs  # Wtf are these first two for?  They're all the same!
 
         vtx_pos_nrm_count = (vtx_uv_coord_offs - vtx_pos_nrm_offs) // 24
@@ -79,42 +79,42 @@ class GCMesh(object):
         if vtx_uv_coord_count != vtx_count: print("vtx_count != vertex color count")
 
         io.seek(joint_offs)
-        joints = [unpack(">iiii", read_exact(io, 16)) for _ in range(joint_count)]
+        joints = [unpack(f"{endian}iiii", read_exact(io, 16)) for _ in range(joint_count)]
 
         io.seek(joint_collinfo_offs)
-        collinfos = [GCMesh.CollInfo.parse(io) for _ in range(joint_collinfo_count)]
+        collinfos = [GCMesh.CollInfo.parse(endian, io) for _ in range(joint_collinfo_count)]
 
         io.seek(skinning_offs)
-        skinnings = [GCMesh.Skinning.parse(io) for _ in range(skinning_count)]
+        skinnings = [GCMesh.Skinning.parse(endian, io) for _ in range(skinning_count)]
         
         io.seek(vtx_pos_nrm_offs)
-        vtx_pos_nrm = [unpack(">ffffff", read_exact(io, 24)) for _ in range(vtx_pos_nrm_count)]
+        vtx_pos_nrm = [unpack(f"{endian}ffffff", read_exact(io, 24)) for _ in range(vtx_pos_nrm_count)]
         
         io.seek(vtx_uv_coord_offs)
-        vtx_uv_coord = [unpack(">ff", read_exact(io, 8)) for _ in range(vtx_uv_coord_count)]
+        vtx_uv_coord = [unpack(f"{endian}ff", read_exact(io, 8)) for _ in range(vtx_uv_coord_count)]
 
         io.seek(vtx_color0_offs)
-        vtx_color0 = [unpack(">BBBB", read_exact(io, 4)) for _ in range(vtx_color0_count)]
+        vtx_color0 = [unpack(f"{endian}BBBB", read_exact(io, 4)) for _ in range(vtx_color0_count)]
 
         io.seek(primitive_meta_offs)
-        primitive_meta = [unpack(">HH", read_exact(io, 4)) for _ in range(primitive_meta_count)]
+        primitive_meta = [unpack(f"{endian}HH", read_exact(io, 4)) for _ in range(primitive_meta_count)]
 
         def read_primitive(idx, size):
             io.seek(primitive_data_offs + idx * 2)
-            return unpack(f">{size}H", read_exact(io, size * 2))
+            return unpack(f"{endian}{size}H", read_exact(io, size * 2))
         primitive_data = [read_primitive(idx, size) for [idx, size] in primitive_meta]
 
         io.seek(primitive_indirection_offs)
-        primitive_indirection = [unpack(">H", read_exact(io, 2))[0] for _ in range(vtx_uv_coord_count)]
+        primitive_indirection = [unpack(f"{endian}H", read_exact(io, 2))[0] for _ in range(vtx_uv_coord_count)]
 
         io.seek(material_idx_offs)
-        material_idxs = [unpack(">H", read_exact(io, 2))[0] for _ in range(mesh_count)]
+        material_idxs = [unpack(f"{endian}H", read_exact(io, 2))[0] for _ in range(mesh_count)]
 
         io.seek(mesh_primitive_start_offs)
-        mesh_primitive_starts = [unpack(">H", read_exact(io, 2))[0] for _ in range(mesh_count)]
+        mesh_primitive_starts = [unpack(f"{endian}H", read_exact(io, 2))[0] for _ in range(mesh_count)]
 
         io.seek(mesh_primitive_size_offs)
-        mesh_primitive_sizes = [unpack(">H", read_exact(io, 2))[0] for _ in range(mesh_count)]
+        mesh_primitive_sizes = [unpack(f"{endian}H", read_exact(io, 2))[0] for _ in range(mesh_count)]
 
         def make_mesh(i: int):
             head = mesh_primitive_starts[i]; tail = head + mesh_primitive_sizes[i]
