@@ -8,7 +8,7 @@ from scg_tools.msh import PCMesh
 from scg_tools.misc import open_helper
 
 def help(progname: str):
-    print(f"help {progname}")
+    print(f"Usage: {progname} <*.msh filepath> [wavefront obj filepath]")
 #
 
 def main() -> int:
@@ -21,8 +21,9 @@ def main() -> int:
     print("Skinnings:")
     for skinning in msh.skinnings:
         print("{:4} {:4} {:2} {:2} {:2} {:4x}".format(skinning.vtx_begin, skinning.vtx_count, skinning.joint_idx_a, skinning.joint_idx_b, skinning.rank, skinning.weight_fxdpnt))
-    with open_helper(argv[2], "w", True, True) as f:
-        msh.dump_wavefront_obj(f)
+    if len(argv) > 2:
+        with open_helper(argv[2], "w", True, True) as f:
+            msh.dump_wavefront_obj(f)
     return 0
 #
 
