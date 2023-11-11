@@ -37,7 +37,10 @@ def main() -> int:
     print(options.input)
     with open(options.input, "rb") as f:
         gsh = GCMesh.parse("<" if options.little_endian else ">", f)
-    print("Skinnings:")
+    print(f"Joints: {len(gsh.joints)}")
+    for joint in gsh.joints:
+        print("{} {} {}".format(joint[0], joint[1], joint[2]))
+    print(f"Skinnings: {len(gsh.skinnings)}")
     for skinning in gsh.skinnings:
         print("{:4} {:4} {:2} {:2} {:2} {:4x}".format(skinning.vtx_begin, skinning.vtx_count, skinning.joint_idx_a, skinning.joint_idx_b, skinning.rank, skinning.weight_fxdpnt))
     if options.obj_path:
