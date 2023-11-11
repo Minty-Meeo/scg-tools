@@ -128,7 +128,9 @@ class PCMesh(object):
         assert finaldata6_count == 0
         assert finaldata7_count == 0
         # Why does this field exist?  Expand this check if finaldata 2, 3, 6, or 7 are identified.
-        assert finaldata_total_count == finaldata0_count + finaldata1_count + finaldata4_count + finaldata5_count
+        expected_finaldata_total_count = finaldata0_count + finaldata1_count + finaldata4_count + finaldata5_count
+        if finaldata_total_count != expected_finaldata_total_count:
+            print(f"finaldata_total_count doesn't match what's expected, difference of {finaldata_total_count - expected_finaldata_total_count}")
         
         io.seek(vtx_pos_offs)
         vtx_poses = [unpack("<hhhh", read_exact(io, 8)) for _ in range(vtx_count)]
