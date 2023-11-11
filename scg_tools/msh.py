@@ -162,8 +162,5 @@ class PCMesh(object):
     def dump_wavefront_obj(self, io: TextIO):
         for [x, y, z, w] in self.vtx_poses:
             io.write(f"v {x} {y} {z}\n")
-        io.write("o mesh\n")
-        for finaldata in self.finaldatas:
-            pass
     #
 #
