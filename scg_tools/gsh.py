@@ -148,7 +148,7 @@ class GCMesh(object):
     # 80032fac v
     # 80032fb0 > value is multiplied to three floats
 
-    def dump_wavefront_obj(self, io: TextIO) -> None:
+    def dump_wavefront_obj(self, io: TextIO, mtl_stemname: str = None) -> None:
         vtx_pos_nrm = [list(x) for x in self.vtx_pos_nrm]
         joint_stack = dict[list[float, float, float, float]]()
         for skinning in self.skinnings:
@@ -167,6 +167,8 @@ class GCMesh(object):
                     vtx_pos_nrm[j][0] += curr_joint[0]
                     vtx_pos_nrm[j][1] += curr_joint[1]
                     vtx_pos_nrm[j][2] += curr_joint[2]
+        if mtl_stemname:
+            io.write(f"mtllib {mtl_stemname}.mtl\n")
         # TODO: vertex color0
         for [x, y, z, xn, yn, zn] in vtx_pos_nrm:
             io.write(f"v {-x} {-y} {z}\n"
@@ -176,6 +178,8 @@ class GCMesh(object):
         callback = lambda tri_pos, tri_tex, tri_nrm : io.write("f {}/{}/{} {}/{}/{} {}/{}/{}\n".format(tri_pos[2]+1, tri_tex[2]+1, tri_nrm[2]+1, tri_pos[1]+1, tri_tex[1]+1, tri_nrm[1]+1, tri_pos[0]+1, tri_tex[0]+1, tri_nrm[0]+1))  # Wavefront OBJ is not zero-indexed... eww...
         for mesh in self.meshes:
             io.write("o mesh\n")
+            if mtl_stemname:
+                io.write(f"usemtl {mtl_stemname}_{mesh.material_idx}\n")
             for primitive in mesh.primitive_data:
                 indirect_primitive = [self.primitive_indirection[x] for x in primitive]
                 tristrip_walk_new(callback, indirect_primitive, primitive, indirect_primitive)
