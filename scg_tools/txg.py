@@ -69,5 +69,5 @@ def write_gcmaterials(io: BinaryIO, gcmaterials: list[GCMaterial]):
         io.write(gcmaterial.data)
     io.seek(0)
     for [offset, gcmaterial] in zip(offsets, gcmaterials):
-        io.write(pack("IBBBBHH", offset, gcmaterial.mode, gcmaterial.xfad, gcmaterial.blend, gcmaterial.pad, gcmaterial.width, gcmaterial.height))
+        io.write(pack(">IBBBBHH", offset, gcmaterial.mode, gcmaterial.xfad, gcmaterial.blend, gcmaterial.pad, gcmaterial.width, gcmaterial.height))
 #
