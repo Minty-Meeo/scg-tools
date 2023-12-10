@@ -13,7 +13,8 @@ from PIL import Image
 from scg_tools.misc import read_exact, peek_exact, align_up
 
 # Assert: Maxtextures reached  File: V:/pickles/GAME/gc_pickles/texturemanager.cpp Line 116
-Maxtextures = 80
+# If you ever reach this, you are doing something horribly wrong
+Maxtextures = 0x800
 
 class GCMaterial(object):
     def __init__(self, mode: int, xfad: int, blend: int, pad: int, width: int, height: int, data: bytes):
