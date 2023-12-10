@@ -4,7 +4,6 @@
 from os import path
 from sys import argv
 
-from PIL import Image
 from scg_tools.misc import open_helper
 from scg_tools.santacruz_tex import parse_psxtexfile, decode_psxtexfile_solo
 from scg_tools.santacruz_txg import GCMaterial, write_gcmaterials
@@ -24,14 +23,13 @@ def main() -> int:
 
     with open(tex_path, "rb") as f:
         psx_textures = parse_psxtexfile(f)
-    images = list[Image.Image]()
+    
+    gcmaterials = list[GCMaterial]()
     for [mode, unk1, unk2, width, height, data, palette] in psx_textures:
-        images.append(decode_psxtexfile_solo(mode, data, palette, width, height))
-    gcn_textures = list[GCMaterial]()
-    for image in images:
-        gcn_textures.append(GCMaterial.encode(image, 1))
+        gcmaterials.append(GCMaterial.encode(decode_psxtexfile_solo(mode, data, palette, width, height), unk1))
+
     with open_helper(txg_path, "wb", make_dirs = True, overwrite = True) as f:
-        write_gcmaterials(f, gcn_textures)
+        write_gcmaterials(f, gcmaterials)
 #
 
 if __name__ == "__main__":
