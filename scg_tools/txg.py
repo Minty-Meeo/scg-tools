@@ -12,6 +12,9 @@ from gclib.fs_helpers import read_all_bytes
 from PIL import Image
 from scg_tools.misc import read_exact, peek_exact, align_up
 
+# Assert: Maxtextures reached  File: V:/pickles/GAME/gc_pickles/texturemanager.cpp Line 116
+Maxtextures = 80
+
 class GCMaterial(object):
     def __init__(self, mode: int, xfad: int, blend: int, pad: int, width: int, height: int, data: bytes):
         # These header field names are guessed from the contents of "/files/models/TEX2TXG_log.txt".
@@ -52,6 +55,8 @@ def parse_gcmaterials(io: BinaryIO) -> list[GCMaterial]:
         expected_size = width * height * 4 if mode else width * height // 2  # RGBA32 vs CMPR bpp
         assert expected_size == len(data)
         gcmaterials.append(GCMaterial(mode, xfad, blend, pad, width, height, data))
+    if len(gcmaterials) > Maxtextures:
+        print("Warning: Maxtextures reached.  Pickles texturemanager will fail.")
     return gcmaterials
 #
 
@@ -62,7 +67,7 @@ def decode_gcmaterials(gcmaterials: list[GCMaterial]) -> list[Image.Image]:
     return images 
 
 def write_gcmaterials(io: BinaryIO, gcmaterials: list[GCMaterial]):
-    io.seek(align_up(len(gcmaterials) * 12, 32))
+    io.seek(align_up(len(gcmaterials) * 12 + 4, 32))
     offsets = list[int]()
     for gcmaterial in gcmaterials:
         offsets.append(io.tell() >> 4)
@@ -70,4 +75,7 @@ def write_gcmaterials(io: BinaryIO, gcmaterials: list[GCMaterial]):
     io.seek(0)
     for [offset, gcmaterial] in zip(offsets, gcmaterials):
         io.write(pack(">IBBBBHH", offset, gcmaterial.mode, gcmaterial.xfad, gcmaterial.blend, gcmaterial.pad, gcmaterial.width, gcmaterial.height))
+    io.write(pack(">I", 0))
+    if len(gcmaterials) > Maxtextures:
+        print("Warning: Maxtextures reached.  Pickles texturemanager will fail.")
 #
